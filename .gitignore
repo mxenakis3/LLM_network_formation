@@ -1,0 +1,6 @@
+venv/
+OPENAI_KEY.txt
+Notes.txt
+pet_name_generator.ipynb
+LLM agent papers/
+.env
