@@ -19,9 +19,9 @@ class Simulation:
     self.api_key = os.getenv('OPENAI_API_KEY')
     self.n_iters = config['n_iters']
     self.network, self.agents = sim_utils.initialize_agents(config, self.api_key)
-    self.new_edges = set()
-    self.new_colors = {}
-    self.spls = None
+    self.new_edges = set() # Set of new edges that are purchased at the end of each time step
+    self.new_colors = {} # Set of new colors for each agent at end of each time step
+    self.spls = None # Shortest path lengths between agents at a given time step
     self.color_tracker = pd.DataFrame(columns=[i for i in range(config['n_agents'])])
     # Populate tracker with the original colors
     # print(f"og_color_tracker: {self.color_tracker}")
