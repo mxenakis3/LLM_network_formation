@@ -67,7 +67,6 @@ class Simulation:
     return runtime
 
 
-
   def reached_consensus(self):
     """
     Check that all nodes have the same color.
@@ -82,25 +81,23 @@ class Simulation:
     return True
 
 
-
   def update_neighbor_info(self):
     """
-    Updates 'neighbor_colors' and 'neighbor_proximity' for each agent 
-    at the beginning of each timestep.
+    Updates 'neighbor_colors' and 'neighbor_proximity' for each agent at the beginning of each timestep.
     """
     adj_matrix = nx.to_numpy_array(self.network)
+    # id is the agent id for the agent in the full set of agents that we are currently iterating over. Agent is the instance of the agent class. 
     for id, agent in self.agents.items():
-      # Get adjacency list of current network corresponding to each agent
-      neighbors = adj_matrix[id]
-      for n_id, x in enumerate(neighbors):
-        if id == n_id:
-          continue
-        if x > 0: # Implies edge
-          agent.neighbor_colors[n_id] = self.agents[n_id].color
-        else:
-          agent.neighbor_proximity[n_id] = {'degree': self.network.degree[n_id],
-                                          'network_distance': self.spls.get(id, {}).get(n_id, 'No direct path exists')} 
-
+      # Get neighbors = adjacency list (neighbors) of current network corresponding to each agent
+      neighbors = adj_matrix[id] # since the agent id's are zero-indexed, the i'th row of the adjacency matrix is the adjacency list for agent 'i'.
+      for n_id, x in enumerate(neighbors): # iterate over adjacency list. n_id is the id of the neighbor
+        if id == n_id: 
+          continue # No self edges
+        if x > 0: # Edge exists between agent 'id' and neighbor 'n_id'
+          agent.neighbor_colors[n_id] = self.agents[n_id].color # allow the agent to see the current color of its neighbor
+        else: # No edge exists between agent 'id' and neighbor 'n_id'
+          agent.neighbor_proximity[n_id] = {'degree': self.network.degree[n_id], # Degree of agent 'n_d' is the current degree of network n_id
+                                          'network_distance': self.spls.get(id, {}).get(n_id, 'No direct path exists to you') } # network distance to n_id is the current shortest path length between id and n_id
 
 
   def store_edge_purchases(self):
@@ -109,10 +106,10 @@ class Simulation:
     Then, collect their payment.
     """
     for agent in self.agents.values():
-      edge_purchased = agent.buy_edge()
-      if edge_purchased:
-        if edge_purchased not in self.new_edges:
-          self.new_edges.add(edge_purchased)
+      edge_purchased = agent.buy_edge() # Buy edge returns
+      if edge_purchased: # If buy edge returns non-null, an edge has been purchased
+        if edge_purchased not in self.new_edges: # If the edge does not already exist in the set of new edges to add
+          self.new_edges.add(edge_purchased) # Add tuple representing edge (id, n_id) to set of new edges
           u, v = edge_purchased
           u, v = int(u), int(v)
           for condition, reward in self.agents[u].projected_reward.items():
@@ -120,7 +117,7 @@ class Simulation:
 
         else:
           # Case: two agents decided to buy links to each other.
-          # Choose who buys edge randomly -- avoids making agents with low ID's more likely to pay.
+          # Choose who buys edge randomly -- avoids making agents with low ID's (who choose first) more likely to pay.
           u, v = edge_purchased
           coin_flip = np.random.choice([0,1])
           if coin_flip == 0:
@@ -142,7 +139,6 @@ class Simulation:
       if color_choice:
         self.new_colors[agent.id] = color_choice
 
-  
 
   def update_network(self):
     """
@@ -151,9 +147,9 @@ class Simulation:
     for edge in self.new_edges:
       u, v = edge
       self.network.add_edge(int(u), int(v))
+      self.network.add_edge(int(v), int(u))
 
     self.new_edges = set()
-
 
   
   def update_colors(self):
@@ -168,8 +164,7 @@ class Simulation:
           self.agents[agent_id].color = color
           agent_colors[agent_id] = self.new_colors[agent_id]
       
-      self.color_tracker.loc[len(self.color_tracker)] = list(agent_colors.values())
-      
+      self.color_tracker.loc[len(self.color_tracker)] = list(agent_colors.values()) # Log the colors
 
 
   def update_time(self):

@@ -24,6 +24,10 @@ class Agent:
     
 
   def choose_color(self):
+    """
+    Inputs: self
+    Outputs: 0 or 1 representing chosen color. None if an invalid option is chosen. 
+    """
     print(f"RUNNING CHOOSE COLOR ON AGENT {self.id}")
     if self.color is None:
       self.color = np.random.choice([0,1])
@@ -58,9 +62,14 @@ class Agent:
       )
       most_likely_consensus = choose_color.run(
         f"""
-        You may be able to see the color of a subset of the other agents' vertices via a dictionary keyed on agent_id, with value agent_color. 
 
-        Each key in the dictionary represents the vertex of another agent. The dictionary is as follows:
+        Agents are only able to see one another's colors by purchasing connections to one another, which in the network of agents/vertices can be thought of as edges connecting one agent to another.
+
+        Through a dictionary, you are able to see the full set of the colors shown by agents with whom you are connected via edge purchases . 
+
+        Each key in the dictionary represents the ID of another agent. Each value represents their color. 
+        
+        The dictionary is as follows:
         {self.neighbor_colors}. 
         
         The game has a total of {self.n_iters} iterations, and it is currently iteration {self.iters_remaining}.
@@ -93,6 +102,11 @@ class Agent:
 
 
   def buy_edge(self):
+    """
+    Inputs: None
+    Outputs: (self.id, int(formatted_edge_selection)): tuple representing an edge if a valid edge is purchased, else None
+    
+    """
     print(f"Running BUY EDGE on agent {self.id}")
     if (min(self.projected_reward.values()) > self.edge_cost):
       # Set up ConversationChain
@@ -104,7 +118,8 @@ class Agent:
       preferred_consensus_prompt = f"""
         You are AN AGENT in a multi-agent game to win money, where each agent controls the color (either 0 or 1) of a vertex in a network.
 
-        To win money, all vertices in the network must show the same color by the end of the game. 
+        To win money, all agents/vertices in the network must show the same color by the end of the game. 
+
 
         If all agents pick color '0', your maximum projected payoff will be {self.consensus_0_reward}.
         If  all agents pick color '1', your maximum projected payoff will be {self.consensus_1_reward}
@@ -114,12 +129,15 @@ class Agent:
         """
       
       most_likely_consensus_prompt = f"""
-        You may be able to see the color of a subset of the other agents' vertices via a dictionary keyed on agent_id, with value agent_color. 
 
-        Each key in the dictionary represents the ID of another agent/agent. The dictionary is as follows:
+        Agents are only able to see one another's colors by purchasing connections to one another, which in the network of agents/vertices can be thought of as edges connecting one agent to another.
+
+        You are able to see the full set of the colors of agents with whom you are connected via edge purchases through a dictionary. 
+
+        Each key in the dictionary represents the ID of another agent. Each value represents their color. The dictionary is as follows:
         {self.neighbor_colors}. 
         
-        The game has a total of {self.n_iters} iterations, and it is currently iteration {self.iters_remaining}.
+        The game has a total of {self.n_iters} iterations, and it is has {self.iters_remaining} iterations remaining.
 
         QUESTION: BASED ON THE AGENTS THAT YOU CAN SEE IN THE DICTIONARY, IS IT MORE LIKELY THAT THERE WILL BE A CONSENSUS OF 0 OR 1? WHY?
         """
@@ -127,9 +145,9 @@ class Agent:
       edge_reasoning_prompt = f"""
         If you're not able to see the color of a agent's vertex already, you may purchase an edge between yourself and the other agent.
         
-        You will be able to see the other agent's color for the rest of the game. They will be able to see yours at no cost to them. 
+        You will be able to see the other agent's color for the rest of the game. They will also be able to see yours at no cost to them. 
 
-        You are able to see the degree of and your shortest-path distance to other agents in the network via a dictionary keyed on the other agents' agent_id. 
+        You are able to see the degree of and your shortest-path distance to the full set of agents in the network to whom you are not connected via a dictionary keyed on the other agents' agent_id. 
         
         The value of each entry is a dictionary which contains both the degree belonging to the agent_id, and their shortest path distance to you. 
 
@@ -141,26 +159,33 @@ class Agent:
         """
       
       real_edge_evaluation_prompt = f"""
-        The game has a total of {self.n_iters} iterations, and it is currently iteration {self.iters_remaining}.
+        The game has a total of {self.n_iters} iterations, and has {self.iters_remaining} iterations remaining.
 
         The aforementioned dictionary describing the proximity to each of your neighboring agents is as follows, where each index represents the ID of an agent: {self.neighbor_proximity}
 
-        QUESTION: OF THE AGENTS IN THE DICTIONARY,  WHAT ARE SOME AGENTS WITH HIGH DEGREES? WHAT ARE SOME AGENTS WITH LOW DEGREES? WHAT AGENTS ARE FAR AWAY? WHICH ARE CLOSE? BASED ON YOUR ANSWERS TO THE PREVIOUS QUESTIONS, SELECT A FEW POTENTIAL AGENTS TO WHOM YOU CAN PURCHASE AN EDGE. QUALITATIVELY EVALUATE THE BENEFITS OF PURCHASING THE EDGE
+        QUESTION: OF THE AGENTS IN THE DICTIONARY,  ARE THERE ANY AGENTS RELATIVELY HIGH DEGREES? IF SO WHICH? ARE THERE ANY AGENTS RELATIVELY LOW DEGREES? IF SO WHICH? 
+         ARE THERE ANY AGENTS WHICH ARE RELATIVELY CLOSE TO YOU? IF SO, WHICH? ARE THERE ANY AGENTS WHICH ARE RELATIVELY FAR FROM YOU? IF SO, WHICH? 
+         SELECT A FEW POTENTIAL AGENTS TO WHOM IT MAY BE BENEFICIAL TO PURCHASE AN EDGE. 
         """
       
       real_edge_cost_benefit_prompt = f"""
         The cost of purchasing an edge is {self.edge_cost}, and you are permitted to purchase the edge as long as you keep above your minimum projected payoff of {self.projected_reward}.
 
-        QUESTION: For each of the potential agents you considered in your previous response, evaluate whether the benefits JUSTIFY the costs. 
+        QUESTION: SELECT A FEW POTENTIAL AGENTS TO WHOM IT MAY BE BENEFICIAL TO PURCHASE AN EDGE. FOR EACH OF THE POTENTIAL EDGES YOU CONSIDERED IN YOUR PREVIOUS RESPONSE, JUSTIFY WHETHER OR NOT THE BENEFITS OUTWEIGH THE COSTS. 
         """
       
       edge_selection_prompt = f"""
-        You may select up to one other agent to purchase an edge to. If you would like to purchase an edge to a neighboring agent in order to move closer to a reward, specify the neighbor's integer code. 
-        For example, if you have determined you would like to purchase a connection to agent 5, respond "5".
+        Context: pRETEND that you ARE an agent in this multi-agent game.
+
+        You may select up to one other agent to purchase an edge to on this turn. 
+         
+        If you would like to purchase an edge to a neighboring agent, specify the neighbor's id. 
+        For example, if you have determined you would like to purchase an edge to agent 5, respond "5".
+        Do not list off multiple candidates to purchase an edge to. If there are ties, pick one of the candidates arbitrarily. 
 
         If you would not like to purchase an edge to a neighboring agent, respond "-1".
 
-        WHICH AGENT WOULD YOU LIKE TO PURCHASE AN EDGE TO? FORMAT YOUR RESPONSE AS AN INTEGER. RESPOND -1 IF YOU DO NOT WISH TO PURCHASE AN EDGE. 
+        WHICH AGENT WOULD YOU LIKE TO PURCHASE AN EDGE TO? IF YOU WOULD LIKE TO PURCHASE AN EDGE, RESPOND WITH THE ID OF THE CANDIDATE AGENT. OTHERWISE, RESPOND "-1".
         """
       
       preferred_consensus = choose_edge.run(preferred_consensus_prompt)
@@ -198,9 +223,9 @@ class Agent:
       
       QA_edge_selection_chain = LLMChain(llm = self.llm, prompt = QA_prompt)
       formatted_edge_selection = QA_edge_selection_chain.run({"edge_selection": edge_selection})
-
+      print(f"formatted edge selection: {formatted_edge_selection}")
       formatted_edge_selection = formatted_edge_selection.strip()
-      print(f"Agent {self.id} Answer: {formatted_edge_selection}")
+      # print(f"Agent {self.id} Answer: {formatted_edge_selection}")
 
       # For Testing Purposes
       # if self.id == 3:
@@ -221,10 +246,10 @@ class Agent:
           return None
       
       # If the selected edge is valid return the edge as an int to store in the dictionary of edges
-      if int(formatted_edge_selection) in self.neighbor_proximity:
+      if int(formatted_edge_selection) in self.neighbor_proximity and  int(formatted_edge_selection) not in self.neighbor_colors:
         choose_edge.memory.clear()
-
-        return(self.id, int(formatted_edge_selection))
+        print(f"Edge is valid. Agent {self.id} selects edge to {formatted_edge_selection}")
+        return (self.id, int(formatted_edge_selection))
       
       # If the selected edge is already visible to the AGENT return nothing (don't purchase edge)
       else:
