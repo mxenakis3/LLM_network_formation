@@ -15,9 +15,6 @@ def initialize_agents(config, openai_key):
   network = nx.Graph()
   for i in range(config['n_agents']):
     network.add_node(i)
-    if i%2 == 0:
-        agent_dict[i] = agent_class.Agent(id = i, config = config['agent_1'], openai_key = openai_key, n_iters = config['n_iters'])
-    else:
-        agent_dict[i] = agent_class.Agent(id = i, config = config['agent_2'], openai_key = openai_key, n_iters = config['n_iters'])
+    agent_dict[i] = agent_class.Agent(id = i, config = config, openai_key = openai_key, n_iters = config['n_iters'])
   return network, agent_dict
   
