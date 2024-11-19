@@ -1,5 +1,6 @@
 import config_utils
 import warnings
+import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
 import simulation_class as sim

@@ -1,7 +1,7 @@
 from click import prompt
 import numpy as np
-from langchain import PromptTemplate, LLMChain
-from langchain.chains import ConversationChain
+from langchain import PromptTemplate
+from langchain.chains import ConversationChain, LLMChain
 
 # New imports -- add context
 from langchain.prompts import ChatPromptTemplate
@@ -49,10 +49,15 @@ class Agent:
     """
     print(f"RUNNING CHOOSE COLOR ON AGENT {self.id}")
     if self.color is None:
-      self.color = np.random.choice([0,1])
-      return self.color
 
-    else:
+    # For testing
+    #   self.color = np.random.choice([0,1])
+    #   return self.color
+
+    # else:
+    #   return self.color # Testing network
+
+      msgs = [] # Store messages
       self.agent_context = SystemMessage(content = f"{self.config['context']}") # This is a BaseMessage object subclass used to give the system message to the LLM prompted.
 
       reasoning_queries = [
@@ -63,29 +68,28 @@ class Agent:
 
       for query in reasoning_queries: 
         if not self.memory.buffer:
-          self.memory.chat_memory.add_message(self.agent_context) 
+          msgs.append(self.agent_context) 
           # Chat memory is a specific subcomponent of a ConversationBufferMemory object
           # Chat memory provides a structured way of storing and interacting with conversation history
           # stores history as objects representing messages. 
           # In this case, we begin the conversation by providing the agent with context
-        
-        human_message = HumanMessage(content = f"{query}") # HumanMessage is, like SystemMessage, a subclass of BaseMessage object
-        self.memory.chat_memory.add_message(human_message) # We add the next query to our chat-based model to memory
+        query = query.format(**self.__dict__)
+        query = query.replace("{", "[").replace("}", "]")
+        human_message = HumanMessage(query) # HumanMessage is, like SystemMessage, a subclass of BaseMessage object
+        msgs.append(human_message) # We add the next query to our chat-based model to memory
 
-        prompt_template = ChatPromptTemplate.from_messages(self.memory.buffer) # Next, we take the current state of the memory and format it into a Template that can be invoked by the agent
-        response = self.llm.invoke(prompt_template) # The agent is invoked
+        # prompt_template = ChatPromptTemplate(msgs) # Next, we take the current state of the memory and format it into a Template that can be invoked by the agent
+        response = self.llm.invoke(msgs) # The agent is invoked
 
         print(f"User Query: {query}") # Print responses
         print(f"Model Response: {response}\n")
 
-        self.memory.chat_memory.add_message(AIMessage(content=response))
-    
-      self.memory.clear() # We clear the memory because we won't need it on future calls. 
+        msgs.append(response)
+      msgs = [] # We clear the memory because we won't need it on future calls. 
 
     
       # Use the last response as color and format.
-      color = response
-
+      color = response.content
       if color.isnumeric():
         try:
           color = int(color)
@@ -101,14 +105,24 @@ class Agent:
     """
     Inputs: None
     Outputs: (self.id, int(formatted_edge_selection)): tuple representing an edge if a valid edge is purchased, else None
-    
     """
-    print(f"Running BUY EDGE on agent {self.id}")
     if (min(self.projected_reward.values()) > self.edge_cost): # The agent can only buy edges if it has enough money
-      # print("First:")
-      # print(self.config['context'])
-      # print("Next:")
-      # print(f"{self.config['context']}")
+
+    # For TESTING:
+    #     print(f"Running BUY EDGE on agent {self.id}")
+    #   if self.id == 0:
+    #     random_edge = 2
+    #   elif self.id == 1:
+    #     random_edge = 0
+    #   else:
+    #     random_edge = np.random.choice([0,1,2, 3, 4])
+    #   if random_edge in self.neighbor_proximity and  random_edge not in self.neighbor_colors:
+    #     print(f"Edge is valid. Agent {self.id} selects edge to {random_edge}")
+    #     return (self.id, random_edge)
+    #   else:
+    #     print(f"Agent {self.id} chooses to buy invalid edge {random_edge}")
+    #     return None
+
       msgs = []
 
       self.agent_context = SystemMessage(content = self.config['context'].format(**self.__dict__)) 
@@ -136,55 +150,18 @@ class Agent:
         query = query.format(**self.__dict__) # unpack the query
         query = query.replace("{", "[").replace("}", "]") # Fix the format so that it doesn't mess up the ChatPromptTemplate
         human_message = HumanMessage(query) # HumanMessage is, like SystemMessage, a subclass of BaseMessage object
-        print(human_message)
         msgs.append(human_message)
-        # self.memory.chat_memory.add_message(human_message) # We add the next query to our chat-based model to memory
 
-        # print(self.memory.buffer)
-        # print(type(self.memory.buffer))
-        # print(self.memory.chat_memory)
-        # print(type(self.memory.chat_memory))
-        # print(f"HUMAN MESSAGE: {human_message.content}")
-        prompt_template = ChatPromptTemplate(msgs) 
-        # prompt_template = ChatPromptTemplate(self.memory.chat_memory) # Next, we take the current state of the memory and format it into a Template that can be invoked by the agent
-        # prompt_template = ChatPromptTemplate(self.memory.buffer) # Next, we take the current state of the memory and format it into a Template that can be invoked by the agent
+        # prompt_template = ChatPromptTemplate(msgs) 
 
-        print("Priting Propt Tempalte")
-        print()
-        print()
-        print(prompt_template)
-        # prompt_template = ChatPromptTemplate.from_messages(self.memory.buffer) # Next, we take the current state of the memory and format it into a Template that can be invoked by the agent
-        # print(prompt_template)
-        # prompt_value = prompt_template.format_prompt()
-        # print(prompt_value)
         response = self.llm.invoke(msgs) # The agent is invoked
 
-        # print(f"User Query: {query.format(**self.__dict__)}") # Print responses
-        # print(f"Model Response: {response}\n")
-        msgs.append(response)
-        # self.memory.chat_memory.add_message(response)
-    
-      self.memory.clear() # We clear the memory because we won't need it on future calls. 
+        print(f"User Query: {query.format(**self.__dict__)}") # Print responses
+        print(f"Model Response: {response}\n")
+        msgs.append(response)    
+      msgs = [] # We clear the memory because we won't need it on future calls. 
 
 
-
-      # preferred_consensus = choose_edge.run(f"{self.config['preferred_consensus_prompt']}")
-      # print(f"Preferred Consensus \n Prompt: {self.config['preferred_consensus_prompt']} \n Response: {preferred_consensus}")
-
-      # most_likely_consensus = choose_edge.run(f"{self.config['most_likely_consensus_prompt']}")
-      # print(f"Most Likely Consensus \n Prompt: {self.config['most_likely_consensus_prompt']} \n Response: {most_likely_consensus}")
-
-      # edge_reasoning = choose_edge.run(f"{self.config['edge_reasoning_prompt']}")
-      # print(f"Edge Reasoning \n Prompt: {self.config['edge_reasoning_prompt']} \n Response: {edge_reasoning}")
-
-      # real_edge_evaluation = choose_edge.run(f"{self.config['real_edge_evaluation_prompt']}")
-      # print(f"Real Edge Evaluation Prompt \n Prompt: {self.config['real_edge_evaluation_prompt']} \n Response: {real_edge_evaluation}")
-
-      # real_edge_cost_benefit = choose_edge.run(f"{self.config['real_edge_cost_benefit_prompt']}")
-      # print(f"Real Edge Cost Benefit \n Prompt: {self.config['real_edge_cost_benefit_prompt']} \n Response: {real_edge_cost_benefit}")
-
-      # edge_selection = choose_edge.run(f"{self.config['edge_selection_prompt']}")
-      # print(f"Edge Selection \n Prompt: {self.config['edge_selection_prompt']} \n Response: {edge_selection}")
 
       # Create separate chain to parse the output of the edge selection: 
       QA_prompt = PromptTemplate(
@@ -203,7 +180,6 @@ class Agent:
       
       QA_edge_selection_chain = LLMChain(llm = self.llm, prompt = QA_prompt)
       formatted_edge_selection = QA_edge_selection_chain.run({"edge_selection": response})
-      print(f"formatted edge selection: {formatted_edge_selection}")
       formatted_edge_selection = formatted_edge_selection.strip()
       # print(f"Agent {self.id} Answer: {formatted_edge_selection}")
 

@@ -38,25 +38,26 @@ class Simulation:
     start_time = time.time()
     for t in tqdm(range(self.n_iters), desc="Iteration"):
     # for t in range(self.n_iters):
-      # print(f"Current iteration: {t}/{self.n_iters}")
+      print(f"Current iteration: {t}/{self.n_iters}")
       # If a consensus has been reached, return the iteration number
       # if self.reached_consensus():
         # print(f"Consensus has been reached at iteration {t}")
       self.spls = dict(nx.all_pairs_shortest_path_length(self.network))
-      # print(f"Shortest path lengths calculating: {self.spls}")
+      print(f"Shortest path lengths calculating: {self.spls}")
       self.update_neighbor_info()
-      # print(f"Neighbors updated. Showing neighbor_proximity and neighbor_color for agent 0:")
-      # print(f"\t colors: {self.agents[0].neighbor_colors}")
-      # print(f"\t proximity: {self.agents[0].neighbor_proximity}")
+      print(f"Neighbors updated. Showing neighbor_proximity and neighbor_color for agent 0:")
+      print(f"\t colors: {self.agents[0].neighbor_colors}")
+      print(f"\t proximity: {self.agents[0].neighbor_proximity}")
       self.store_edge_purchases()
-      # print(f"Edges stored. New edge dictionary: \n \t {self.new_edges}")
-      self.agents_choose_colors()
-      # print(f"Colors stored. New color dictionary: \n \t {self.new_colors}")
-      # print(f"edges in og network: {len(self.network.edges)}")
+      print(f"Edges stored. New edge dictionary: \n \t {self.new_edges}")
+      self.agents_choose_colors() # Agents choose based on colors from last iteration
+      print(f"Colors stored. New color dictionary: \n \t {self.new_colors}")
+      print(f"edges in og network: {len(self.network.edges)}")
       self.update_network()
-      # print(f"Updating network. edges in new network: {len(self.network.edges)}")
+      print(f"Updating network. edges in new network: {len(self.network.edges)}")
+      nx.draw(self.network)
       self.update_colors()
-      # print(f"Updating colors: {self.new_colors}")
+      print(f"Updating colors: {self.new_colors}")
       self.update_time()
       # print(f"Color tracking: {self.color_tracker}")
 
@@ -95,8 +96,8 @@ class Simulation:
           continue # No self edges
         if x > 0: # Edge exists between agent 'id' and neighbor 'n_id'
           agent.neighbor_colors[n_id] = self.agents[n_id].color # allow the agent to see the current color of its neighbor
-        else: # No edge exists between agent 'id' and neighbor 'n_id'
-          agent.neighbor_proximity[n_id] = {'degree': self.network.degree[n_id], # Degree of agent 'n_d' is the current degree of network n_id
+        # else: # No edge exists between agent 'id' and neighbor 'n_id'
+        agent.neighbor_proximity[n_id] = {'degree': self.network.degree[n_id], # Degree of agent 'n_d' is the current degree of network n_id
                                           'network_distance': self.spls.get(id, {}).get(n_id, 'No direct path exists to you') } # network distance to n_id is the current shortest path length between id and n_id
 
 
@@ -136,7 +137,7 @@ class Simulation:
     """
     for agent in self.agents.values():
       color_choice = agent.choose_color()
-      if color_choice:
+      if color_choice in set([0, 1]):
         self.new_colors[agent.id] = color_choice
 
 

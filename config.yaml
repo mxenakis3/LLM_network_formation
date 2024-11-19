@@ -1,5 +1,5 @@
-n_iters: 10
-n_agents: 5
+n_iters: 3
+n_agents: 6
 context: |
   You are an agent in a multi-agent game trying maximize your potential payoff.
   
@@ -10,6 +10,8 @@ context: |
   If the entire network picks color 0, your maximum projected payoff will be {consensus_0_reward}.
   If the entire network picks color 1, your maximum projected payoff will be {consensus_1_reward}
   If no consensus is reached, you will not win any money.
+
+  Be concise in your responses.
 preferred_consensus_prompt: |
   WOULD YOU PREFER A CONSENSUS OF 0 OR 1? WHY?
   WOULD YOU PREFER A CONSENSUS OR NO CONSENSUS? WHY?
@@ -23,7 +25,7 @@ most_likely_consensus_prompt: |
   The dictionary is as follows:
   {neighbor_colors}. 
   
-  The game has a total of {n_iters} iterations, and it is currently iteration {iters_remaining}.
+  The game has a total of {n_iters} iterations, and it has {iters_remaining} iterations remaining.
 
   QUESTION: BASED ON THE AGENTS THAT YOU CAN SEE IN THE DICTIONARY, IS IT MORE LIKELY THAT THERE WILL BE A CONSENSUS OF 0 OR 1? WHY?
 choose_color_prompt: You may choose either 0 or 1 as your color. Which color do you choose? Format your response as ONLY an integer ex. (0 for '0') 
